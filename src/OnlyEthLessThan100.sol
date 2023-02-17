@@ -5,7 +5,7 @@ import {INounsDAOV2} from "./interfaces/INounsDAOV2.sol";
 import {IRule} from "./interfaces/IRule.sol";
 
 contract OnlyEthLessThan100 is IRule {
-    function validate(address governor, address voter, uint256 proposalId, uint8 support)
+    function validate(address governor, address voter, uint256 proposalId, uint8 support, uint8 permissions, address[] calldata authority)
         external
         view
         override
