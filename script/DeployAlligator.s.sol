@@ -15,6 +15,7 @@ import {INounsDAOV2} from "../src/interfaces/INounsDAOV2.sol";
 import {DescriptorImageData} from "./DescriptorImageData.sol";
 
 contract DeployAlligatorScript is Script {
+    address[] public emptyAddressArr;
     function run() public {
         // Test wallet: 0x77777101E31b4F3ECafF209704E947855eFbd014
         address deployer = vm.rememberKey(0x98d35887bece258e8e6b407b13c92004d76c2ffe63b4cbbe343839aaca6bdb9f);
@@ -29,25 +30,11 @@ contract DeployAlligatorScript is Script {
 
         alligator.subDelegate(
             0xC3FdAdbAe46798CD8762185A09C5b672A7aA36Bb,
-            Rules({
-                permissions: 0x07,
-                maxRedelegations: 0,
-                notValidBefore: 0,
-                notValidAfter: 0,
-                blocksBeforeVoteCloses: 0,
-                customRule: address(0)
-            })
+            Rules(0, emptyAddressArr)
         );
         alligator.subDelegate(
             0x1E79b045Dc29eAe9fdc69673c9DCd7C53E5E159D,
-            Rules({
-                permissions: 0x07,
-                maxRedelegations: 0,
-                notValidBefore: 0,
-                notValidAfter: 0,
-                blocksBeforeVoteCloses: 0,
-                customRule: address(0)
-            })
+            Rules(0, emptyAddressArr)
         );
     }
 }

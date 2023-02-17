@@ -7,13 +7,10 @@ import {IRule} from "./interfaces/IRule.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+/// uint8 is to prevent "Internal or recursive type is not allowed for public state variables."
 struct Rules {
-    uint8 permissions;
-    uint8 maxRedelegations;
-    uint32 notValidBefore;
-    uint32 notValidAfter;
-    uint16 blocksBeforeVoteCloses;
-    address customRule;
+    uint8 anti;
+    address[] customRules;
 }
 
 contract Proxy is IERC1271 {
@@ -87,7 +84,6 @@ contract Alligator {
     error BadSignature();
     error NotDelegated(address from, address to, uint8 requiredPermissions);
     error TooManyRedelegations(address from, address to);
-    error NotValidYet(address from, address to, uint32 willBeValidFrom);
     error NotValidAnymore(address from, address to, uint32 wasValidUntil);
     error TooEarly(address from, address to, uint32 blocksBeforeVoteCloses);
     error InvalidCustomRule(address from, address to, address customRule);
@@ -251,31 +247,17 @@ contract Alligator {
             return;
         }
 
-        INounsDAOV2.ProposalCondensed memory proposal = governor.proposals(proposalId);
-
         for (uint256 i = 1; i < authority.length; i++) {
             address to = authority[i];
             Rules memory rules = subDelegations[from][to];
-
-            if ((rules.permissions & permissions) != permissions) {
-                revert NotDelegated(from, to, permissions);
-            }
-            if (rules.maxRedelegations + i + 1 < authority.length) {
-                revert TooManyRedelegations(from, to);
-            }
-            if (block.timestamp < rules.notValidBefore) {
-                revert NotValidYet(from, to, rules.notValidBefore);
-            }
-            if (rules.notValidAfter != 0 && block.timestamp > rules.notValidAfter) {
-                revert NotValidAnymore(from, to, rules.notValidAfter);
-            }
-            if (rules.blocksBeforeVoteCloses != 0 && proposal.endBlock > block.number + rules.blocksBeforeVoteCloses) {
-                revert TooEarly(from, to, rules.blocksBeforeVoteCloses);
-            }
-            if (rules.customRule != address(0)) {
-                bytes4 selector = IRule(rules.customRule).validate(address(governor), sender, proposalId, support);
-                if (selector != IRule.validate.selector) {
-                    revert InvalidCustomRule(from, to, rules.customRule);
+            // gas tradeoffs should be considered, I did not consider them for this change, only design
+            for (uint j = 0; j < rules.customRules.length; j++) {
+                address customRule = rules.customRules[j];
+                if (customRule != address(0)) {
+                    bytes4 selector = IRule(customRule).validate(address(governor), sender, proposalId, support, permissions, authority);
+                    if (selector != IRule.validate.selector) {
+                        revert InvalidCustomRule(from, to, customRule);
+                    }
                 }
             }
 

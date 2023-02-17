@@ -7,11 +7,14 @@ import {IGovernorBravo} from "../src/interfaces/IGovernorBravo.sol";
 import {INounsDAOV2} from "../src/interfaces/INounsDAOV2.sol";
 import "../src/Alligator.sol";
 import "./Utils.sol";
+import "../src/NotValidBefore.sol";
 
 contract AlligatorTest is Test {
     Alligator public alligator;
     NounsDAO public nounsDAO;
     address public root;
+
+    address[] public emptyAddressArr;
 
     function setUp() public {
         nounsDAO = new NounsDAO();
@@ -35,14 +38,7 @@ contract AlligatorTest is Test {
         authority[0] = address(this);
         authority[1] = Utils.alice;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -57,34 +53,14 @@ contract AlligatorTest is Test {
         targets[1] = Utils.carol;
 
         Rules[] memory rules = new Rules[](2);
-        rules[0] = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
-        rules[1] = Rules({
-            permissions: 0x02,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        rules[0] = Rules(0, emptyAddressArr);
+        rules[1] = Rules(0, emptyAddressArr);
 
         vm.prank(Utils.alice);
         alligator.subDelegateBatched(targets, rules);
 
         address aliceProxy = alligator.proxyAddress(Utils.alice);
         assertGt(aliceProxy.code.length, 0);
-
-        (uint8 bobPermissions,,,,,) = alligator.subDelegations(Utils.alice, Utils.bob);
-        assertEq(bobPermissions, 0x01);
-
-        (uint8 carolPermissions,,,,,) = alligator.subDelegations(Utils.alice, Utils.carol);
-        assertEq(carolPermissions, 0x02);
     }
 
     function testNestedSubDelegate() public {
@@ -94,14 +70,7 @@ contract AlligatorTest is Test {
         authority[2] = Utils.bob;
         authority[3] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -125,14 +94,7 @@ contract AlligatorTest is Test {
         authority2[0] = Utils.bob;
         authority2[1] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -165,14 +127,7 @@ contract AlligatorTest is Test {
         authorities[0] = authority1;
         authorities[1] = authority2;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -194,14 +149,7 @@ contract AlligatorTest is Test {
         authority[2] = Utils.bob;
         authority[3] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -212,14 +160,7 @@ contract AlligatorTest is Test {
         vm.prank(Utils.alice);
         alligator.subDelegate(
             Utils.bob,
-            Rules({
-                permissions: 0,
-                maxRedelegations: 0,
-                notValidBefore: 0,
-                notValidAfter: 0,
-                blocksBeforeVoteCloses: 0,
-                customRule: address(0)
-            })
+            Rules(0, emptyAddressArr)
         );
 
         vm.prank(Utils.carol);
@@ -227,43 +168,36 @@ contract AlligatorTest is Test {
         alligator.castVote(authority, 1, 1);
     }
 
-    function testMaxRedelegations() public {
-        address[] memory authority = new address[](4);
-        authority[0] = address(this);
-        authority[1] = Utils.alice;
-        authority[2] = Utils.bob;
-        authority[3] = Utils.carol;
+    // function testMaxRedelegations() public {
+    //     address[] memory authority = new address[](4);
+    //     authority[0] = address(this);
+    //     authority[1] = Utils.alice;
+    //     authority[2] = Utils.bob;
+    //     authority[3] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x01,
-            maxRedelegations: 1,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+    //     Rules memory rules = Rules(0, emptyAddressArr);
 
-        alligator.subDelegate(Utils.alice, rules);
-        vm.prank(Utils.alice);
+    //     alligator.subDelegate(Utils.alice, rules);
+    //     vm.prank(Utils.alice);
 
-        rules.maxRedelegations = 255;
+    //     rules.maxRedelegations = 255;
 
-        alligator.subDelegate(Utils.bob, rules);
-        vm.prank(Utils.bob);
-        alligator.subDelegate(Utils.carol, rules);
+    //     alligator.subDelegate(Utils.bob, rules);
+    //     vm.prank(Utils.bob);
+    //     alligator.subDelegate(Utils.carol, rules);
 
-        vm.prank(Utils.carol);
-        vm.expectRevert();
-        alligator.castVote(authority, 1, 1);
+    //     vm.prank(Utils.carol);
+    //     vm.expectRevert();
+    //     alligator.castVote(authority, 1, 1);
 
-        address[] memory authority2 = new address[](3);
-        authority2[0] = address(this);
-        authority2[1] = Utils.alice;
-        authority2[2] = Utils.bob;
+    //     address[] memory authority2 = new address[](3);
+    //     authority2[0] = address(this);
+    //     authority2[1] = Utils.alice;
+    //     authority2[2] = Utils.bob;
 
-        vm.prank(Utils.bob);
-        alligator.castVote(authority2, 1, 1);
-    }
+    //     vm.prank(Utils.bob);
+    //     alligator.castVote(authority2, 1, 1);
+    // }
 
     function testSupportsSigning() public {
         bytes32 hash1 = keccak256(abi.encodePacked("pass"));
@@ -288,14 +222,7 @@ contract AlligatorTest is Test {
         authority[2] = Utils.bob;
         authority[3] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x02,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -317,14 +244,7 @@ contract AlligatorTest is Test {
         authority[2] = Utils.bob;
         authority[3] = Utils.carol;
 
-        Rules memory rules = Rules({
-            permissions: 0x02,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
@@ -335,14 +255,7 @@ contract AlligatorTest is Test {
         vm.prank(Utils.alice);
         alligator.subDelegate(
             Utils.bob,
-            Rules({
-                permissions: 0,
-                maxRedelegations: 0,
-                notValidBefore: 0,
-                notValidAfter: 0,
-                blocksBeforeVoteCloses: 0,
-                customRule: address(0)
-            })
+            Rules(0, emptyAddressArr)
         );
 
         vm.prank(Utils.carol);
@@ -364,14 +277,7 @@ contract AlligatorTest is Test {
         authority[3] = Utils.carol;
         authority[4] = signer;
 
-        Rules memory rules = Rules({
-            permissions: 0x02,
-            maxRedelegations: 255,
-            notValidBefore: 0,
-            notValidAfter: 0,
-            blocksBeforeVoteCloses: 0,
-            customRule: address(0)
-        });
+        Rules memory rules = Rules(0, emptyAddressArr);
 
         alligator.subDelegate(Utils.alice, rules);
         vm.prank(Utils.alice);
